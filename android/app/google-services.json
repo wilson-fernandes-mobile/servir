@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "513823144550",
+    "project_id": "servir-c4cf6",
+    "storage_bucket": "servir-c4cf6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:513823144550:android:9179f323c115747b484ba7",
+        "android_client_info": {
+          "package_name": "com.servir.app.servir"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAkbu9G5FmTWvDlapjOK6iUNz_-NB_YsHA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
