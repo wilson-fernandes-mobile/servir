@@ -8,7 +8,7 @@ class ScheduleAssignment extends Equatable {
 
   const ScheduleAssignment({required this.userId, required this.roles});
 
-  ScheduleAssignment copyWith({String? userId, List<String>? roles}) {
+  ScheduleAssignment copyWith({String? userId, String? name,List<String>? roles}) {
     return ScheduleAssignment(
       userId: userId ?? this.userId,
       roles: roles ?? this.roles,
@@ -102,8 +102,14 @@ class ScheduleEntity extends Equatable {
         eventId, shiftId, shiftName, shiftStartTime, shiftEndTime,
       ];
 
+  bool timeHasValue() {
+    return shiftStartTime != null && shiftEndTime != null;
+  }
+
   String timeEvent() {
     return '$shiftStartTime – $shiftEndTime';
   }
+  
+  String? get displayTime => timeHasValue() ? timeEvent() : shiftName;
 }
 

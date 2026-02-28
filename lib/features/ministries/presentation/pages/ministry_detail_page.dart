@@ -834,15 +834,14 @@ class _ScheduleCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              if (schedule.shiftStartTime != null &&
-                  schedule.shiftEndTime != null) ...[
+              if (schedule.timeHasValue()) ...[
                 const SizedBox(height: 4),
                 Row(children: [
                   const Icon(Icons.access_time_outlined,
                       size: 13, color: AppColors.textSecondary),
                   const SizedBox(width: 4),
                   Text(
-                    '${schedule.shiftStartTime} – ${schedule.shiftEndTime}',
+                    schedule.timeEvent(),
                     style: const TextStyle(
                         fontSize: 12, color: AppColors.textSecondary),
                   ),
@@ -1054,7 +1053,7 @@ class _CreateScheduleSheetState extends ConsumerState<_CreateScheduleSheet> {
                     final isSelected = _selectedShift?.id == shift.id;
                     return ChoiceChip(
                       label: Text(
-                          '${shift.name} (${shift.startTime}–${shift.endTime})'),
+                          '${shift.name} (${shift.displayTime})'),
                       selected: isSelected,
                       onSelected: (_) =>
                           setState(() => _selectedShift = shift),

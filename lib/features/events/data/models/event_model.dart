@@ -34,6 +34,7 @@ class EventModel extends EventEntity {
     required super.churchId,
     required super.name,
     required super.date,
+    super.endDate,
     super.shifts = const [],
     required super.createdAt,
     required super.createdBy,
@@ -47,6 +48,7 @@ class EventModel extends EventEntity {
       churchId: data['churchId'] as String? ?? '',
       name: data['name'] as String? ?? '',
       date: (data['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      endDate: (data['endDate'] as Timestamp?)?.toDate(),
       shifts: rawShifts
           .map((s) => ShiftModel.fromMap(s as Map<String, dynamic>))
           .toList(),
@@ -60,6 +62,7 @@ class EventModel extends EventEntity {
         'churchId': churchId,
         'name': name,
         'date': Timestamp.fromDate(date),
+        if (endDate != null) 'endDate': Timestamp.fromDate(endDate!),
         'shifts': shifts
             .map((s) => ShiftModel(
                   id: s.id,

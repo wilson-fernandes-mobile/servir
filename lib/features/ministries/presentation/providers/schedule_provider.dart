@@ -55,7 +55,7 @@ final upcomingSchedulesProvider =
 });
 
 /// Fetches all upcoming schedules where the current user is assigned,
-/// across all ministries they belong to.
+/// across ALL church ministries (not just the ones where the user is a listed member/leader).
 final myUpcomingSchedulesProvider =
     FutureProvider<List<ScheduleEntity>>((ref) async {
   final user = ref.watch(authStateChangesProvider).asData?.value;
@@ -63,9 +63,11 @@ final myUpcomingSchedulesProvider =
 
   final ministries = await ref.watch(churchMinistriesProvider.future);
 
-  // Only look at ministries where the user is a member or leader
-  final myMinistries = ministries.where((m) =>
-      m.memberIds.contains(user.id) || m.leaderIds.contains(user.id)).toList();
+  // Busca apenas nos ministérios dos quais o usuário faz parte (membro ou líder)
+  final myMinistries = ministries
+      .where((m) =>
+          m.memberIds.contains(user.id) || m.leaderIds.contains(user.id))
+      .toList();
 
   final useCase = ref.read(getUpcomingSchedulesUseCaseProvider);
 
@@ -79,8 +81,27 @@ final myUpcomingSchedulesProvider =
   final flat = allSchedules.expand<ScheduleEntity>((list) => list).toList();
 
   // Keep only schedules where this user is assigned
+  final now = DateTime.now();
   final mine = flat
       .where((s) => s.assignments.any((a) => a.userId == user.id))
+      .where((s) {
+        final d = s.eventDate;
+        final isToday =
+            d.year == now.year && d.month == now.month && d.day == now.day;
+
+        // Se for hoje e tiver horário de fim, oculta se já encerrou
+        if (isToday && s.shiftEndTime != null && s.shiftEndTime!.isNotEmpty) {
+          final parts = s.shiftEndTime!.split(':');
+          if (parts.length == 2) {
+            final endHour = int.tryParse(parts[0]) ?? 23;
+            final endMin = int.tryParse(parts[1]) ?? 59;
+            final endDt =
+                DateTime(d.year, d.month, d.day, endHour, endMin);
+            return now.isBefore(endDt);
+          }
+        }
+        return true;
+      })
       .toList()
     ..sort((a, b) => a.eventDate.compareTo(b.eventDate));
 

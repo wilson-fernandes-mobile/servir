@@ -233,9 +233,7 @@ class _HomeScheduleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateLabel = DateFormat('EEE, d MMM', 'pt_BR').format(schedule.eventDate);
     final isToday = DateUtils.isSameDay(schedule.eventDate, DateTime.now());
-    final timeLabel = (schedule.shiftStartTime != null && schedule.shiftEndTime != null)
-        ? '${schedule.shiftStartTime} – ${schedule.shiftEndTime}'
-        : schedule.shiftName;
+    final timeLabel = schedule.displayTime;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),

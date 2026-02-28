@@ -16,6 +16,7 @@ class CreateEventUseCase extends UseCase<EventEntity, CreateEventParams> {
       churchId: params.churchId,
       name: params.name,
       date: params.date,
+      endDate: params.endDate,
       shifts: params.shifts,
       createdBy: params.createdBy,
     );
@@ -26,6 +27,7 @@ class CreateEventParams extends Equatable {
   final String churchId;
   final String name;
   final DateTime date;
+  final DateTime? endDate;
   final List<ShiftEntity> shifts;
   final String createdBy;
 
@@ -33,11 +35,12 @@ class CreateEventParams extends Equatable {
     required this.churchId,
     required this.name,
     required this.date,
+    this.endDate,
     required this.shifts,
     required this.createdBy,
   });
 
   @override
-  List<Object?> get props => [churchId, name, date, shifts, createdBy];
+  List<Object?> get props => [churchId, name, date, endDate, shifts, createdBy];
 }
 

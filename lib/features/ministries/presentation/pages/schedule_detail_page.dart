@@ -7,6 +7,7 @@ import '../../../auth/domain/entities/user_entity.dart';
 import '../../domain/entities/ministry_entity.dart';
 import '../../domain/entities/schedule_entity.dart';
 import '../../domain/usecases/update_schedule_assignments_use_case.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/schedule_provider.dart';
 
 class ScheduleDetailPage extends ConsumerStatefulWidget {
@@ -35,14 +36,6 @@ class _ScheduleDetailPageState extends ConsumerState<ScheduleDetailPage> {
   void initState() {
     super.initState();
     _assignments = List.from(widget.schedule.assignments);
-  }
-
-  String _userName(String userId) {
-    try {
-      return widget.allMembers.firstWhere((m) => m.id == userId).name;
-    } catch (_) {
-      return userId;
-    }
   }
 
   bool get _isToday {
@@ -154,7 +147,7 @@ class _ScheduleDetailPageState extends ConsumerState<ScheduleDetailPage> {
                 style: TextStyle(color: AppColors.textSecondary)),
           ..._assignments.map((a) => _AssignmentTile(
                 key: ValueKey(a.userId),
-                name: _userName(a.userId),
+                userId: a.userId,
                 roles: a.roles,
                 canManage: widget.canManage,
                 onRemove: () =>
@@ -206,28 +199,17 @@ class _InfoCard extends StatelessWidget {
             schedule.eventTitle,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
-          if (schedule.shiftStartTime != null &&
-              schedule.shiftEndTime != null) ...[
+          if (schedule.displayTime != null) ...[
             const SizedBox(height: 6),
             Row(children: [
               const Icon(Icons.access_time_outlined,
                   size: 14, color: AppColors.textSecondary),
               const SizedBox(width: 6),
               Text(
-                '${schedule.shiftStartTime} – ${schedule.shiftEndTime}',
+                schedule.displayTime!,
                 style: const TextStyle(
                     fontSize: 13, color: AppColors.textSecondary),
               ),
-            ]),
-          ] else if (schedule.shiftName != null) ...[
-            const SizedBox(height: 6),
-            Row(children: [
-              const Icon(Icons.access_time_outlined,
-                  size: 14, color: AppColors.textSecondary),
-              const SizedBox(width: 6),
-              Text(schedule.shiftName!,
-                  style: const TextStyle(
-                      fontSize: 13, color: AppColors.textSecondary)),
             ]),
           ],
           if (schedule.notes != null && schedule.notes!.isNotEmpty) ...[
@@ -253,22 +235,28 @@ class _InfoCard extends StatelessWidget {
 
 // ── Assignment Tile ───────────────────────────────────────────────────────────
 
-class _AssignmentTile extends StatelessWidget {
-  final String name;
+class _AssignmentTile extends ConsumerWidget {
+  final String userId;
   final List<String> roles;
   final bool canManage;
   final VoidCallback onRemove;
 
   const _AssignmentTile({
     super.key,
-    required this.name,
+    required this.userId,
     required this.roles,
     required this.canManage,
     required this.onRemove,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(userByIdProvider(userId));
+    final name = userAsync.maybeWhen(
+      data: (user) => user?.name ?? userId,
+      orElse: () => '…',
+    );
+
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -277,10 +265,22 @@ class _AssignmentTile extends StatelessWidget {
           CircleAvatar(
             radius: 18,
             backgroundColor: AppColors.primaryLight,
-            child: Text(
-              name.isNotEmpty ? name[0].toUpperCase() : '?',
-              style: const TextStyle(
-                  color: AppColors.primary, fontWeight: FontWeight.w700),
+            child: userAsync.when(
+              loading: () => const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              error: (_, __) => const Text('?',
+                  style: TextStyle(
+                      color: AppColors.primary, fontWeight: FontWeight.w700)),
+              data: (user) => Text(
+                user != null && user.name.isNotEmpty
+                    ? user.name[0].toUpperCase()
+                    : '?',
+                style: const TextStyle(
+                    color: AppColors.primary, fontWeight: FontWeight.w700),
+              ),
             ),
           ),
           const SizedBox(width: 12),

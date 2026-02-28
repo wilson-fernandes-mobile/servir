@@ -83,7 +83,8 @@ class _EventCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dateStr = DateFormat('dd/MM/yyyy').format(event.date);
+    final periodStr = event.formattedDateRange;
+
     return Card(
       clipBehavior: Clip.hardEdge,
       child: Stack(
@@ -116,7 +117,7 @@ class _EventCard extends ConsumerWidget {
                           style: const TextStyle(
                               fontWeight: FontWeight.w700, fontSize: 15)),
                       const SizedBox(height: 2),
-                      Text(dateStr,
+                      Text(periodStr,
                           style: const TextStyle(
                               color: AppColors.textSecondary, fontSize: 12)),
                       if (event.shifts.isNotEmpty) ...[
@@ -185,7 +186,7 @@ class _ShiftChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        '${shift.name}  ${shift.startTime}–${shift.endTime}',
+        '${shift.name}  ${shift.displayTime}',
         style: const TextStyle(
             fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600),
       ),
@@ -206,6 +207,7 @@ class _CreateEventSheet extends ConsumerStatefulWidget {
 class _CreateEventSheetState extends ConsumerState<_CreateEventSheet> {
   final _nameCtrl = TextEditingController();
   DateTime _date = DateTime.now();
+  DateTime? _endDate;
   final List<_ShiftDraft> _shifts = [];
   bool _saving = false;
 
@@ -237,6 +239,7 @@ class _CreateEventSheetState extends ConsumerState<_CreateEventSheet> {
             churchId: widget.user.churchId!,
             name: _nameCtrl.text.trim(),
             date: _date,
+            endDate: _endDate,
             shifts: shifts,
             createdBy: widget.user.id,
           ),
@@ -259,7 +262,9 @@ class _CreateEventSheetState extends ConsumerState<_CreateEventSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat('dd/MM/yyyy').format(_date);
+    final fmt = DateFormat('dd/MM/yyyy');
+    final dateStr = fmt.format(_date);
+    final endDateStr = _endDate != null ? fmt.format(_endDate!) : null;
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -300,7 +305,7 @@ class _CreateEventSheetState extends ConsumerState<_CreateEventSheet> {
             ),
             const SizedBox(height: 12),
 
-            // Data
+            // Data de início
             InkWell(
               borderRadius: BorderRadius.circular(8),
               onTap: () async {
@@ -310,15 +315,59 @@ class _CreateEventSheetState extends ConsumerState<_CreateEventSheet> {
                   firstDate: DateTime(2020),
                   lastDate: DateTime(2100),
                 );
-                if (picked != null) setState(() => _date = picked);
+                if (picked != null) {
+                  setState(() {
+                    _date = picked;
+                    // Se endDate ficou antes da nova data de início, resetar
+                    if (_endDate != null && _endDate!.isBefore(_date)) {
+                      _endDate = null;
+                    }
+                  });
+                }
               },
               child: InputDecorator(
                 decoration: const InputDecoration(
-                  labelText: 'Data do evento *',
+                  labelText: 'Data de início *',
                   prefixIcon: Icon(Icons.calendar_today_outlined),
                   border: OutlineInputBorder(),
                 ),
                 child: Text(dateStr),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Data de fim
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _endDate ?? _date,
+                  firstDate: _date,
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) setState(() => _endDate = picked);
+              },
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Data de fim',
+                  prefixIcon: const Icon(Icons.event_available_outlined),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: _endDate != null
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () => setState(() => _endDate = null),
+                        )
+                      : null,
+                ),
+                child: Text(
+                  endDateStr ?? 'Igual à data de início',
+                  style: TextStyle(
+                    color: endDateStr == null
+                        ? Theme.of(context).hintColor
+                        : null,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 20),

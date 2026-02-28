@@ -13,14 +13,22 @@ class FirestoreEventDataSource implements EventRemoteDataSource {
   CollectionReference<Map<String, dynamic>> get _col =>
       _firestore.collection('events');
 
+  /// Filtra client-side: mantém apenas eventos cujo [effectiveEndDate] >= hoje.
+  List<EventEntity> _filterUpcoming(List<EventModel> list) {
+    final today = DateTime.now();
+    final startOfToday = DateTime(today.year, today.month, today.day);
+    return list
+        .where((e) => !e.effectiveEndDate.isBefore(startOfToday))
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+  }
+
   @override
   Future<List<EventEntity>> getEvents(String churchId) async {
     final snap = await _col
         .where('churchId', isEqualTo: churchId)
         .get();
-    final list = snap.docs.map(EventModel.fromFirestore).toList();
-    list.sort((a, b) => a.date.compareTo(b.date));
-    return list;
+    return _filterUpcoming(snap.docs.map(EventModel.fromFirestore).toList());
   }
 
   @override
@@ -28,11 +36,8 @@ class FirestoreEventDataSource implements EventRemoteDataSource {
     return _col
         .where('churchId', isEqualTo: churchId)
         .snapshots()
-        .map((snap) {
-      final list = snap.docs.map(EventModel.fromFirestore).toList();
-      list.sort((a, b) => a.date.compareTo(b.date));
-      return list;
-    });
+        .map((snap) =>
+            _filterUpcoming(snap.docs.map(EventModel.fromFirestore).toList()));
   }
 
   @override
@@ -40,6 +45,7 @@ class FirestoreEventDataSource implements EventRemoteDataSource {
     required String churchId,
     required String name,
     required DateTime date,
+    DateTime? endDate,
     required List<ShiftEntity> shifts,
     required String createdBy,
   }) async {
@@ -62,6 +68,7 @@ class FirestoreEventDataSource implements EventRemoteDataSource {
       churchId: churchId,
       name: name,
       date: date,
+      endDate: endDate,
       shifts: shiftsWithIds,
       createdAt: now,
       createdBy: createdBy,

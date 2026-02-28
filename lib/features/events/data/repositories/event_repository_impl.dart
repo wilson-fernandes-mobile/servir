@@ -28,6 +28,7 @@ class EventRepositoryImpl implements EventRepository {
     required String churchId,
     required String name,
     required DateTime date,
+    DateTime? endDate,
     required List<ShiftEntity> shifts,
     required String createdBy,
   }) async {
@@ -36,6 +37,7 @@ class EventRepositoryImpl implements EventRepository {
         churchId: churchId,
         name: name,
         date: date,
+        endDate: endDate,
         shifts: shifts,
         createdBy: createdBy,
       ));

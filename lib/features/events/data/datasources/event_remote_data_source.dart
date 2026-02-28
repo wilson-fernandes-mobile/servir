@@ -6,6 +6,7 @@ abstract class EventRemoteDataSource {
     required String churchId,
     required String name,
     required DateTime date,
+    DateTime? endDate,
     required List<ShiftEntity> shifts,
     required String createdBy,
   });

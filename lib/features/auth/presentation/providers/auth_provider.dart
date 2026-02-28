@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/datasources/firebase_auth_data_source.dart';
+import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -66,5 +67,17 @@ final authNotifierProvider =
     signUp: ref.read(signUpUseCaseProvider),
     signOut: ref.read(signOutUseCaseProvider),
   );
+});
+
+/// Busca um único usuário pelo [userId] direto no Firestore.
+/// Cacheado pelo Riverpod — re-usado em qualquer lugar que precise de dados
+/// do usuário (nome, foto, etc.) sem depender de listas passadas por parâmetro.
+final userByIdProvider =
+    FutureProvider.family<UserEntity?, String>((ref, userId) async {
+  if (userId.isEmpty) return null;
+  final firestore = ref.read(firestoreProvider);
+  final doc = await firestore.collection('users').doc(userId).get();
+  if (!doc.exists) return null;
+  return UserModel.fromFirestore(doc);
 });
 
