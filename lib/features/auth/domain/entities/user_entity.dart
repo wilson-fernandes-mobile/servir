@@ -25,6 +25,9 @@ class UserEntity extends Equatable {
   final DateTime? lastLoginAt;
   final String? lastDevice;
 
+  /// Datas em que o usuário marcou indisponibilidade (normalizadas à meia-noite).
+  final List<DateTime> unavailableDates;
+
   // ignore: prefer_const_constructors_in_immutables
   UserEntity({
     required this.id,
@@ -37,6 +40,7 @@ class UserEntity extends Equatable {
     required this.createdAt,
     this.lastLoginAt,
     this.lastDevice,
+    this.unavailableDates = const [],
   });
 
   UserEntity copyWith({
@@ -50,6 +54,7 @@ class UserEntity extends Equatable {
     DateTime? createdAt,
     DateTime? lastLoginAt,
     String? lastDevice,
+    List<DateTime>? unavailableDates,
   }) {
     return UserEntity(
       id: id ?? this.id,
@@ -62,13 +67,21 @@ class UserEntity extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       lastDevice: lastDevice ?? this.lastDevice,
+      unavailableDates: unavailableDates ?? this.unavailableDates,
+    );
+  }
+
+  /// Verifica se este usuário está indisponível na [date] informada.
+  bool isUnavailableOn(DateTime date) {
+    return unavailableDates.any(
+      (d) => d.year == date.year && d.month == date.month && d.day == date.day,
     );
   }
 
   @override
   List<Object?> get props => [
         id, name, email, phone, churchId,
-        role, isActive, createdAt, lastLoginAt, lastDevice,
+        role, isActive, createdAt, lastLoginAt, lastDevice, unavailableDates,
       ];
 }
 

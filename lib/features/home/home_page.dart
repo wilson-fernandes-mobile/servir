@@ -15,7 +15,9 @@ import '../ministries/domain/entities/schedule_entity.dart';
 import '../ministries/presentation/pages/ministries_page.dart';
 import '../ministries/presentation/pages/schedule_detail_page.dart';
 import '../ministries/presentation/providers/ministry_provider.dart';
+import '../auth/presentation/pages/profile_page.dart';
 import '../ministries/presentation/providers/schedule_provider.dart';
+import '../unavailability/presentation/pages/unavailability_page.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -49,6 +51,16 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
             itemBuilder: (_) => [
               const PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.manage_accounts_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Meu Perfil'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
                 value: 'logout',
                 child: Row(
                   children: [
@@ -60,7 +72,11 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ],
             onSelected: (value) {
-              if (value == 'logout') {
+              if (value == 'profile') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ProfilePage()),
+                );
+              } else if (value == 'logout') {
                 ref.read(authNotifierProvider.notifier).signOut();
               }
             },
@@ -112,7 +128,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Olá, $userName 👋',
+            'Olá, $userName',
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -173,10 +189,16 @@ class _HomePageState extends ConsumerState<HomePage> {
       childAspectRatio: 1.6,
       children: [
         _QuickActionCard(
-          icon: Icons.calendar_month,
-          label: 'Escalas',
+          icon: Icons.event_busy_outlined,
+          label: 'Indisponibilidade',
           color: AppColors.primary,
-          onTap: () => setState(() => _selectedIndex = 1),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const UnavailabilityPage(),
+              ),
+            );
+          },
         ),
         _QuickActionCard(
           icon: Icons.event,
@@ -245,7 +267,18 @@ class _HomeScheduleCard extends StatelessWidget {
             builder: (_) => ScheduleDetailPage(schedule: schedule),
           ),
         ),
-        child: Padding(
+        child: Stack(
+          children: [
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Image.asset(
+                'assets/icon/ic_pattern_transparent_background.png',
+                fit: BoxFit.fitHeight,
+              ),
+            ),
+            Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: Row(
             children: [
@@ -301,6 +334,8 @@ class _HomeScheduleCard extends StatelessWidget {
               const Icon(Icons.chevron_right, color: AppColors.textHint),
             ],
           ),
+        ),
+          ],
         ),
       ),
     );

@@ -16,10 +16,12 @@ class UserModel extends UserEntity {
     required super.createdAt,
     super.lastLoginAt,
     super.lastDevice,
+    super.unavailableDates,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final rawDates = data['unavailableDates'] as List<dynamic>? ?? [];
     return UserModel(
       id: doc.id,
       name: data['name'] as String? ?? '',
@@ -31,6 +33,10 @@ class UserModel extends UserEntity {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastLoginAt: (data['lastLoginAt'] as Timestamp?)?.toDate(),
       lastDevice: data['lastDevice'] as String?,
+      unavailableDates: rawDates
+          .whereType<Timestamp>()
+          .map((ts) => ts.toDate())
+          .toList(),
     );
   }
 
@@ -46,6 +52,7 @@ class UserModel extends UserEntity {
     DateTime? createdAt,
     DateTime? lastLoginAt,
     String? lastDevice,
+    List<DateTime>? unavailableDates,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -58,6 +65,7 @@ class UserModel extends UserEntity {
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       lastDevice: lastDevice ?? this.lastDevice,
+      unavailableDates: unavailableDates ?? this.unavailableDates,
     );
   }
 
@@ -74,6 +82,9 @@ class UserModel extends UserEntity {
       'createdAt': Timestamp.fromDate(createdAt),
       if (lastLoginAt != null) 'lastLoginAt': Timestamp.fromDate(lastLoginAt!),
       if (lastDevice != null) 'lastDevice': lastDevice,
+      'unavailableDates': unavailableDates
+          .map((d) => Timestamp.fromDate(DateTime(d.year, d.month, d.day)))
+          .toList(),
     };
   }
 }

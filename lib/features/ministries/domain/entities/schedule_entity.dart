@@ -109,7 +109,7 @@ class ScheduleEntity extends Equatable {
   String timeEvent() {
     return '$shiftStartTime – $shiftEndTime';
   }
-  
+
   String? get displayTime => timeHasValue() ? timeEvent() : shiftName;
 }
 

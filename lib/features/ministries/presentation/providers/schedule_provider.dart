@@ -108,3 +108,28 @@ final myUpcomingSchedulesProvider =
   return mine;
 });
 
+/// Retorna todas as escalas da igreja para uma data específica.
+/// Usado para detectar conflitos de horário ao criar uma nova escala.
+final schedulesOnDateProvider =
+    FutureProvider.family<List<ScheduleEntity>, DateTime>((ref, date) async {
+  final user = ref.watch(authStateChangesProvider).asData?.value;
+  if (user == null || user.churchId == null) return [];
+
+  final ministries = await ref.watch(churchMinistriesProvider.future);
+  final useCase = ref.read(getUpcomingSchedulesUseCaseProvider);
+
+  final all = await Future.wait<List<ScheduleEntity>>(
+    ministries.map((m) async {
+      final result = await useCase(m.id);
+      return result.fold((_) => <ScheduleEntity>[], (list) => list);
+    }),
+  );
+
+  return all
+      .expand<ScheduleEntity>((list) => list)
+      .where((s) =>
+          s.eventDate.year == date.year &&
+          s.eventDate.month == date.month &&
+          s.eventDate.day == date.day)
+      .toList();
+});

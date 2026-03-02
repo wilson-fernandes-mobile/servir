@@ -417,42 +417,55 @@ class _ContactTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        onTap: () => _openSheet(context),
-        leading: CircleAvatar(
-          backgroundColor:
-              isLeader ? AppColors.secondaryLight : AppColors.primaryLight,
-          child: Text(
-            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-            style: TextStyle(
-              color: isLeader ? AppColors.secondary : AppColors.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        title: Text(user.name,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: Stack(
           children: [
-            if (isLeader)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                    color: AppColors.secondaryLight,
-                    borderRadius: BorderRadius.circular(10)),
-                child: const Text('Líder',
-                    style: TextStyle(
-                        color: AppColors.secondary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600)),
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Image.asset(
+                'assets/icon/ic_pattern_transparent_background.png',
+                fit: BoxFit.fitHeight,
               ),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right,
-                size: 18, color: AppColors.textHint),
-          ],
-        ),
+            ),
+            ListTile(
+              onTap: () => _openSheet(context),
+              leading: CircleAvatar(
+                backgroundColor:
+                isLeader ? AppColors.secondaryLight : AppColors.primaryLight,
+                child: Text(
+                  user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                  style: TextStyle(
+                    color: isLeader ? AppColors.secondary : AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              title: Text(user.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isLeader)
+                    Container(
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                          color: AppColors.secondaryLight,
+                          borderRadius: BorderRadius.circular(10)),
+                      child: const Text('Líder',
+                          style: TextStyle(
+                              color: AppColors.secondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right,
+                      size: 18, color: AppColors.textHint),
+                ],
+              ),
+            ),
+          ]
       ),
     );
   }
@@ -904,17 +917,85 @@ class _CreateScheduleSheetState extends ConsumerState<_CreateScheduleSheet> {
   final Map<String, List<String>> _assignments = {};
   bool _saving = false;
 
+  /// Escalas do dia do evento selecionado (outras igrejas/ministérios).
+  List<ScheduleEntity> _schedulesOnDate = [];
+
+  /// IDs de usuários que já têm conflito de horário.
+  Set<String> _conflictingUserIds = {};
+
   @override
   void dispose() {
     _notesCtrl.dispose();
     super.dispose();
   }
 
-  List<UserEntity> get _ministryMembers => widget.allMembers
+  /// Todos os membros do ministério.
+  List<UserEntity> get _allMinistryMembers => widget.allMembers
       .where((m) =>
           widget.ministry.memberIds.contains(m.id) ||
           widget.ministry.leaderIds.contains(m.id))
       .toList();
+
+  /// Membros disponíveis: sem indisponibilidade e sem conflito de horário.
+  List<UserEntity> get _availableMembers {
+    final eventDate = _selectedEvent?.date;
+    return _allMinistryMembers.where((m) {
+      if (eventDate != null && m.isUnavailableOn(eventDate)) return false;
+      if (_conflictingUserIds.contains(m.id)) return false;
+      return true;
+    }).toList();
+  }
+
+  /// Quantidade de membros ocultos por indisponibilidade ou conflito.
+  int get _hiddenCount => _allMinistryMembers.length - _availableMembers.length;
+
+  /// Busca as escalas do dia do evento e recalcula conflitos.
+  Future<void> _fetchSchedulesAndConflicts(DateTime date) async {
+    final schedules =
+        await ref.read(schedulesOnDateProvider(date).future);
+    if (!mounted) return;
+    setState(() {
+      _schedulesOnDate = schedules;
+      _updateConflicts();
+    });
+  }
+
+  /// Recalcula quais usuários têm conflito com o turno selecionado.
+  void _updateConflicts() {
+    if (_selectedShift == null) {
+      _conflictingUserIds = {};
+      return;
+    }
+    final sStart = _selectedShift!.startTime;
+    final sEnd = _selectedShift!.endTime;
+
+    final conflicting = <String>{};
+    for (final s in _schedulesOnDate) {
+      // Ignora escalas do próprio ministério
+      if (s.ministryId == widget.ministry.id) continue;
+
+      // Se ambos têm horário, verifica sobreposição; senão, bloqueia o dia todo
+      if (sStart != null &&
+          sEnd != null &&
+          s.shiftStartTime != null &&
+          s.shiftEndTime != null) {
+        if (_timesOverlap(sStart, sEnd, s.shiftStartTime!, s.shiftEndTime!)) {
+          conflicting.addAll(s.assignments.map((a) => a.userId));
+        }
+      } else {
+        conflicting.addAll(s.assignments.map((a) => a.userId));
+      }
+    }
+    _conflictingUserIds = conflicting;
+  }
+
+  bool _timesOverlap(String s1, String e1, String s2, String e2) {
+    int toMin(String t) {
+      final p = t.split(':');
+      return int.tryParse(p[0]) ?? 0 * 60 + (int.tryParse(p.length > 1 ? p[1] : '0') ?? 0);
+    }
+    return toMin(s1) < toMin(e2) && toMin(s2) < toMin(e1);
+  }
 
   Future<void> _save() async {
     if (_selectedEvent == null || _selectedShift == null) return;
@@ -1020,10 +1101,15 @@ class _CreateScheduleSheetState extends ConsumerState<_CreateScheduleSheet> {
                             ),
                           ))
                       .toList(),
-                  onChanged: (e) => setState(() {
-                    _selectedEvent = e;
-                    _selectedShift = null; // reset shift
-                  }),
+                  onChanged: (e) {
+                    setState(() {
+                      _selectedEvent = e;
+                      _selectedShift = null;
+                      _schedulesOnDate = [];
+                      _conflictingUserIds = {};
+                    });
+                    if (e != null) _fetchSchedulesAndConflicts(e.date);
+                  },
                 );
               },
             ),
@@ -1055,8 +1141,10 @@ class _CreateScheduleSheetState extends ConsumerState<_CreateScheduleSheet> {
                       label: Text(
                           '${shift.name} (${shift.displayTime})'),
                       selected: isSelected,
-                      onSelected: (_) =>
-                          setState(() => _selectedShift = shift),
+                      onSelected: (_) => setState(() {
+                        _selectedShift = shift;
+                        _updateConflicts();
+                      }),
                       selectedColor: AppColors.primary,
                       labelStyle: TextStyle(
                           color: isSelected ? Colors.white : null,
@@ -1071,16 +1159,47 @@ class _CreateScheduleSheetState extends ConsumerState<_CreateScheduleSheet> {
 
             // ── Member assignment ────────────────────────────────────────
             if (widget.ministry.roles.isNotEmpty &&
-                _ministryMembers.isNotEmpty) ...[
-              const Text(
-                'Membros e Funções',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary),
+                _allMinistryMembers.isNotEmpty) ...[
+              Row(
+                children: [
+                  const Text(
+                    'Membros e Funções',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary),
+                  ),
+                  if (_hiddenCount > 0) ...[
+                    const SizedBox(width: 6),
+                    Tooltip(
+                      message:
+                          '$_hiddenCount membro(s) oculto(s) por indisponibilidade ou conflito de horário',
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.info_outline,
+                              size: 14, color: AppColors.textSecondary),
+                          const SizedBox(width: 2),
+                          Text(
+                            '($_hiddenCount oculto(s))',
+                            style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
               const SizedBox(height: 6),
-              ..._ministryMembers.map((member) {
+              if (_availableMembers.isEmpty)
+                const Text(
+                  'Todos os membros estão indisponíveis ou já escalados neste horário.',
+                  style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 13),
+                ),
+              ..._availableMembers.map((member) {
                 final memberRoles = _assignments[member.id] ?? [];
                 return ExpansionTile(
                   tilePadding: EdgeInsets.zero,

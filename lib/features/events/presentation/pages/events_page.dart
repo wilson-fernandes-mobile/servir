@@ -506,6 +506,7 @@ class _ShiftEditorState extends State<_ShiftEditor> {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
