@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -197,6 +200,58 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         .showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  /// Constrói a imagem de perfil - suporta base64 ou URL de rede
+  Widget _buildProfileImage(String photoUrl, String userName) {
+    // Verifica se é base64
+    if (photoUrl.startsWith('data:image')) {
+      try {
+        final base64String = photoUrl.split(',')[1];
+        final bytes = base64Decode(base64String);
+        return Image.memory(
+          bytes,
+          width: 84,
+          height: 84,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Text(
+            userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+            style: const TextStyle(
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+        );
+      } catch (e) {
+        // Se falhar ao decodificar, mostra inicial
+        return Text(
+          userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+          style: const TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
+        );
+      }
+    }
+
+    // Se for URL de rede (Firebase Storage)
+    return CachedNetworkImage(
+      imageUrl: photoUrl,
+      width: 84,
+      height: 84,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => const CircularProgressIndicator(),
+      errorWidget: (context, url, error) => Text(
+        userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+        style: const TextStyle(
+          fontSize: 36,
+          fontWeight: FontWeight.bold,
+          color: AppColors.primary,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authUser = ref.watch(authStateChangesProvider).asData?.value;
@@ -251,21 +306,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               backgroundColor: Colors.white,
                               child: user.photoUrl != null && user.photoUrl!.isNotEmpty
                                   ? ClipOval(
-                                      child: CachedNetworkImage(
-                                        imageUrl: user.photoUrl!,
-                                        width: 84,
-                                        height: 84,
-                                        fit: BoxFit.cover,
-                                        placeholder: (context, url) => const CircularProgressIndicator(),
-                                        errorWidget: (context, url, error) => Text(
-                                          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                                          style: const TextStyle(
-                                            fontSize: 36,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.primary,
-                                          ),
-                                        ),
-                                      ),
+                                      child: _buildProfileImage(user.photoUrl!, user.name),
                                     )
                                   : Text(
                                       user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',

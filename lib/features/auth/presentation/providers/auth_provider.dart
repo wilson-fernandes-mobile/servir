@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/datasources/firebase_auth_data_source.dart';
+import '../../data/datasources/firestore_photo_data_source.dart';
 import '../../data/datasources/storage_data_source.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository_impl.dart';
@@ -13,6 +14,7 @@ import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/sign_in_use_case.dart';
 import '../../domain/usecases/sign_out_use_case.dart';
 import '../../domain/usecases/sign_up_use_case.dart';
+import '../../domain/usecases/upload_profile_photo_firestore_use_case.dart';
 import '../../domain/usecases/upload_profile_photo_use_case.dart';
 import 'auth_notifier.dart';
 
@@ -27,7 +29,7 @@ final firestoreProvider = Provider<FirebaseFirestore>(
 );
 
 final firebaseStorageProvider = Provider<FirebaseStorage>(
-  (_) => FirebaseStorage.instance,
+  (_) => FirebaseStorage.instanceFor(bucket: 'gs://servir-c4cf6.firebasestorage.app'),
 );
 
 // ── Data layer ────────────────────────────────────────────────────────────────
@@ -49,6 +51,10 @@ final storageDataSourceProvider = Provider<StorageDataSource>((ref) {
   return FirebaseStorageDataSource(ref.read(firebaseStorageProvider));
 });
 
+final firestorePhotoDataSourceProvider = Provider<FirestorePhotoDataSource>((ref) {
+  return FirestorePhotoDataSourceImpl(ref.read(firestoreProvider));
+});
+
 // ── Domain / Use-cases ────────────────────────────────────────────────────────
 
 final signInUseCaseProvider = Provider<SignInUseCase>(
@@ -63,12 +69,20 @@ final signOutUseCaseProvider = Provider<SignOutUseCase>(
   (ref) => SignOutUseCase(ref.read(authRepositoryProvider)),
 );
 
-final uploadProfilePhotoUseCaseProvider = Provider<UploadProfilePhotoUseCase>(
-  (ref) => UploadProfilePhotoUseCase(
-    ref.read(storageDataSourceProvider),
-    ref.read(firestoreProvider),
+// Use este provider se você NÃO tiver o plano Blaze (Storage desabilitado)
+final uploadProfilePhotoUseCaseProvider = Provider<UploadProfilePhotoFirestoreUseCase>(
+  (ref) => UploadProfilePhotoFirestoreUseCase(
+    ref.read(firestorePhotoDataSourceProvider),
   ),
 );
+
+// Use este provider se você TIVER o plano Blaze (Storage habilitado)
+// final uploadProfilePhotoUseCaseProvider = Provider<UploadProfilePhotoUseCase>(
+//   (ref) => UploadProfilePhotoUseCase(
+//     ref.read(storageDataSourceProvider),
+//     ref.read(firestoreProvider),
+//   ),
+// );
 
 // ── Presentation ──────────────────────────────────────────────────────────────
 
