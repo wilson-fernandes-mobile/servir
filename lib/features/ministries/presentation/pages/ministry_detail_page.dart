@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/user_avatar.dart';
 import '../../../auth/domain/entities/user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../churches/presentation/providers/church_provider.dart';
@@ -430,16 +431,12 @@ class _ContactTile extends StatelessWidget {
             ),
             ListTile(
               onTap: () => _openSheet(context),
-              leading: CircleAvatar(
-                backgroundColor:
-                isLeader ? AppColors.secondaryLight : AppColors.primaryLight,
-                child: Text(
-                  user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    color: isLeader ? AppColors.secondary : AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              leading: UserAvatar(
+                photoUrl: user.photoUrl,
+                userName: user.name,
+                radius: 20,
+                backgroundColor: isLeader ? AppColors.secondaryLight : AppColors.primaryLight,
+                textColor: isLeader ? AppColors.secondary : AppColors.primary,
               ),
               title: Text(user.name,
                   style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
@@ -509,18 +506,12 @@ class _ContactSheet extends StatelessWidget {
           const SizedBox(height: 20),
 
           // Avatar + nome
-          CircleAvatar(
+          UserAvatar(
+            photoUrl: user.photoUrl,
+            userName: user.name,
             radius: 32,
-            backgroundColor:
-                isLeader ? AppColors.secondaryLight : AppColors.primaryLight,
-            child: Text(
-              user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: isLeader ? AppColors.secondary : AppColors.primary,
-              ),
-            ),
+            backgroundColor: isLeader ? AppColors.secondaryLight : AppColors.primaryLight,
+            textColor: isLeader ? AppColors.secondary : AppColors.primary,
           ),
           const SizedBox(height: 12),
           Text(user.name,

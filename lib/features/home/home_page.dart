@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_strings.dart';
+import '../../core/widgets/user_avatar.dart';
 import '../auth/domain/entities/user_entity.dart';
 import '../auth/presentation/providers/auth_provider.dart';
 import '../churches/presentation/providers/church_provider.dart';
@@ -44,11 +45,17 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
           PopupMenuButton<String>(
             offset: const Offset(0, 48),
-            icon: const CircleAvatar(
-              radius: 14,
-              backgroundColor: AppColors.primaryLight,
-              child: Icon(Icons.person, size: 16, color: AppColors.primary),
-            ),
+            icon: user?.photoUrl != null && user!.photoUrl!.isNotEmpty
+                ? UserAvatar(
+                    photoUrl: user.photoUrl,
+                    userName: user.name,
+                    radius: 14,
+                  )
+                : const CircleAvatar(
+                    radius: 14,
+                    backgroundColor: AppColors.primaryLight,
+                    child: Icon(Icons.person, size: 16, color: AppColors.primary),
+                  ),
             itemBuilder: (_) => [
               const PopupMenuItem(
                 value: 'profile',

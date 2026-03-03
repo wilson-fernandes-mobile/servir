@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_colors.dart';
+import '../../core/widgets/user_avatar.dart';
 import '../auth/domain/entities/user_entity.dart';
 import '../auth/presentation/providers/auth_provider.dart';
 import '../churches/presentation/providers/church_notifier.dart';
@@ -79,15 +80,10 @@ class _MemberTile extends ConsumerWidget {
             ),
           ),
           ListTile(
-            leading: CircleAvatar(
-              backgroundColor: AppColors.primaryLight,
-              child: Text(
-                member.name.isNotEmpty ? member.name[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+            leading: UserAvatar(
+              photoUrl: member.photoUrl,
+              userName: member.name,
+              radius: 20,
             ),
             title: Text(
               '${member.name}${isCurrentUser ? ' (você)' : ''}',

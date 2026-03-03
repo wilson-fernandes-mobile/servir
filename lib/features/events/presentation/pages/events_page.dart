@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/user_avatar.dart';
 import '../../../auth/domain/entities/user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/event_entity.dart';
@@ -347,7 +348,7 @@ class _ScheduleItem extends ConsumerWidget {
           margin: const EdgeInsets.only(bottom: 6),
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
-            color: AppColors.background,
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: AppColors.divider),
           ),
@@ -389,10 +390,11 @@ class _ScheduleItem extends ConsumerWidget {
                       const SizedBox(height: 8),
                     ],
 
-                    // Avatares sobrepostos
-                    Row(
+                    // Avatares sobrepostos + contador
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Stack com largura calculada
+                        // Stack de avatares
                         SizedBox(
                           width: schedule.assignments.isEmpty
                               ? 0
@@ -422,17 +424,10 @@ class _ScheduleItem extends ConsumerWidget {
                                         width: 2,
                                       ),
                                     ),
-                                    child: CircleAvatar(
+                                    child: UserAvatar(
+                                      photoUrl: user?.photoUrl,
+                                      userName: userName,
                                       radius: 16,
-                                      backgroundColor: AppColors.primaryLight,
-                                      child: Text(
-                                        userName[0].toUpperCase(),
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
                                     ),
                                   ),
                                 ),
@@ -440,24 +435,29 @@ class _ScheduleItem extends ConsumerWidget {
                             }).toList(),
                           ),
                         ),
-                        const SizedBox(width: 12),
 
-                        // Contador de pessoas
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight,
-                            borderRadius: BorderRadius.circular(12),
+                        // Contador abaixo dos avatares
+                        if (schedule.assignments.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.people,
+                                size: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Total Escalado ${schedule.assignments.length}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
-                          child: Text(
-                            '${schedule.assignments.length}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+                        ],
                       ],
                     ),
                   ],

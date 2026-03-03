@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/user_avatar.dart';
 import '../../../auth/domain/entities/user_entity.dart';
 import '../../domain/entities/ministry_entity.dart';
 import '../../domain/entities/schedule_entity.dart';
@@ -262,25 +263,24 @@ class _AssignmentTile extends ConsumerWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: Row(children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: AppColors.primaryLight,
-            child: userAsync.when(
-              loading: () => const SizedBox(
+          userAsync.when(
+            loading: () => const CircleAvatar(
+              radius: 18,
+              backgroundColor: AppColors.primaryLight,
+              child: SizedBox(
                 width: 14,
                 height: 14,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              error: (_, __) => const Text('?',
-                  style: TextStyle(
-                      color: AppColors.primary, fontWeight: FontWeight.w700)),
-              data: (user) => Text(
-                user != null && user.name.isNotEmpty
-                    ? user.name[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                    color: AppColors.primary, fontWeight: FontWeight.w700),
-              ),
+            ),
+            error: (_, __) => const UserAvatar(
+              userName: '?',
+              radius: 18,
+            ),
+            data: (user) => UserAvatar(
+              photoUrl: user?.photoUrl,
+              userName: user?.name ?? '?',
+              radius: 18,
             ),
           ),
           const SizedBox(width: 12),

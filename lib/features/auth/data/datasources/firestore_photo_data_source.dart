@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 
+import '../../../../core/constants/image_constants.dart';
 import '../../../../core/errors/exceptions.dart';
 
 /// Alternativa ao Firebase Storage que salva a foto como base64 no Firestore.
@@ -31,9 +32,9 @@ class FirestorePhotoDataSourceImpl implements FirestorePhotoDataSource {
 
       // Converte para base64
       final base64Image = base64Encode(compressedBytes);
-      
+
       // Verifica o tamanho (Firestore tem limite de ~1MB por documento)
-      if (base64Image.length > 900000) { // ~900KB para ter margem
+      if (base64Image.length > ImageConstants.maxBase64Size) {
         throw const ServerException();
       }
 
@@ -49,24 +50,22 @@ class FirestorePhotoDataSourceImpl implements FirestorePhotoDataSource {
     }
   }
 
-  /// Compacta MUITO a imagem para caber no Firestore (limite de 1MB).
-  /// - Redimensiona para máximo 256x256 (bem pequeno)
-  /// - Qualidade 70%
-  /// - Formato JPEG
+  /// Compacta a imagem para caber no Firestore (limite de 1MB).
+  /// Os parâmetros de compactação podem ser ajustados em [ImageConstants].
   Future<Uint8List?> _compressImage(String imagePath) async {
     try {
       final file = File(imagePath);
       final bytes = await file.readAsBytes();
-      
-      // Compacta MUITO para caber no Firestore
+
+      // Compacta usando as constantes configuráveis
       final compressedBytes = await FlutterImageCompress.compressWithList(
         bytes,
-        minWidth: 256,
-        minHeight: 256,
-        quality: 70,
+        minWidth: ImageConstants.imageMinWidth,
+        minHeight: ImageConstants.imageMinHeight,
+        quality: ImageConstants.imageQuality,
         format: CompressFormat.jpeg,
       );
-      
+
       return Uint8List.fromList(compressedBytes);
     } catch (e) {
       return null;
