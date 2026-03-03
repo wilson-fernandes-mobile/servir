@@ -26,25 +26,42 @@ class MembersPage extends ConsumerWidget {
       error: (e, _) => Center(child: Text('Erro ao carregar membros: $e')),
       data: (members) {
         if (members.isEmpty) {
-          return const Center(
-            child: Text(
-              'Nenhum membro encontrado.',
-              style: TextStyle(color: AppColors.textSecondary),
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(churchMembersProvider);
+            },
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 200),
+                Center(
+                  child: Text(
+                    'Nenhum membro encontrado.',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
             ),
           );
         }
-        return ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          itemCount: members.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final member = members[index];
-            return _MemberTile(
-              member: member,
-              isAdmin: isAdmin,
-              currentUserId: currentUser?.id ?? '',
-            );
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(churchMembersProvider);
           },
+          child: ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            itemCount: members.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final member = members[index];
+              return _MemberTile(
+                member: member,
+                isAdmin: isAdmin,
+                currentUserId: currentUser?.id ?? '',
+              );
+            },
+          ),
         );
       },
     );

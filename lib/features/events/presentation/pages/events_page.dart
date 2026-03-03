@@ -40,25 +40,42 @@ class EventsPage extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Erro: $e')),
         data: (events) {
           if (events.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.event_outlined, size: 56, color: AppColors.textHint),
-                  SizedBox(height: 12),
-                  Text('Nenhum evento cadastrado.',
-                      style: TextStyle(color: AppColors.textSecondary)),
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(churchEventsProvider);
+              },
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const [
+                  SizedBox(height: 200),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.event_outlined, size: 56, color: AppColors.textHint),
+                        SizedBox(height: 12),
+                        Text('Nenhum evento cadastrado.',
+                            style: TextStyle(color: AppColors.textSecondary)),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            itemCount: events.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, i) => _EventCard(
-              event: events[i],
-              canManage: canManage,
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(churchEventsProvider);
+            },
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              itemCount: events.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, i) => _EventCard(
+                event: events[i],
+                canManage: canManage,
+              ),
             ),
           );
         },

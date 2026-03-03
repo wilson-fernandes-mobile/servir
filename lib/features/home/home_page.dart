@@ -129,52 +129,64 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget _buildHomeBody(String userName, bool isAdmin, UserEntity? user) {
     final schedulesAsync = ref.watch(myUpcomingSchedulesProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Olá, $userName',
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(myUpcomingSchedulesProvider);
+        ref.invalidate(churchEventsProvider);
+        ref.invalidate(churchMinistriesProvider);
+        ref.invalidate(churchMembersProvider);
+        if (isAdmin) {
+          ref.invalidate(currentChurchProvider);
+        }
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Olá, $userName',
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Veja o que acontece esta semana',
-            style: TextStyle(color: AppColors.textSecondary),
-          ),
-          if (isAdmin) ...[
-            const SizedBox(height: 20),
-            _AdminChurchCard(),
+            const SizedBox(height: 4),
+            const Text(
+              'Veja o que acontece esta semana',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            if (isAdmin) ...[
+              const SizedBox(height: 20),
+              _AdminChurchCard(),
+            ],
+            const SizedBox(height: 24),
+            _buildQuickActions(),
+            const SizedBox(height: 24),
+            const Text(
+              'Minhas Escalas',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 12),
+            schedulesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => _buildEmptySchedules(),
+              data: (schedules) {
+                if (schedules.isEmpty) return _buildEmptySchedules();
+                return Column(
+                  children: schedules
+                      .map((s) => _HomeScheduleCard(schedule: s))
+                      .toList(),
+                );
+              },
+            ),
           ],
-          const SizedBox(height: 24),
-          _buildQuickActions(),
-          const SizedBox(height: 24),
-          const Text(
-            'Minhas Escalas',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          schedulesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => _buildEmptySchedules(),
-            data: (schedules) {
-              if (schedules.isEmpty) return _buildEmptySchedules();
-              return Column(
-                children: schedules
-                    .map((s) => _HomeScheduleCard(schedule: s))
-                    .toList(),
-              );
-            },
-          ),
-        ],
+        ),
       ),
     );
   }

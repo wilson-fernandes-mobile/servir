@@ -30,38 +30,55 @@ class MinistriesPage extends ConsumerWidget {
             Center(child: Text('Erro ao carregar ministérios: $e')),
         data: (ministries) {
           if (ministries.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(churchMinistriesProvider);
+              },
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  const Icon(Icons.groups_outlined,
-                      size: 56, color: AppColors.textHint),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Nenhum ministério cadastrado',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
-                  if (isAdmin) ...[
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: const Text('Criar ministério'),
-                      onPressed: () =>
-                          _showCreateDialog(context, ref, user!.churchId!),
+                  const SizedBox(height: 200),
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.groups_outlined,
+                            size: 56, color: AppColors.textHint),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Nenhum ministério cadastrado',
+                          style: TextStyle(color: AppColors.textSecondary),
+                        ),
+                        if (isAdmin) ...[
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            icon: const Icon(Icons.add),
+                            label: const Text('Criar ministério'),
+                            onPressed: () =>
+                                _showCreateDialog(context, ref, user!.churchId!),
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
+                  ),
                 ],
               ),
             );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            itemCount: ministries.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (_, index) => _MinistryCard(
-              ministry: ministries[index],
-              showCode: canSeeCode,
-              isAdmin: isAdmin,
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(churchMinistriesProvider);
+            },
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              itemCount: ministries.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, index) => _MinistryCard(
+                ministry: ministries[index],
+                showCode: canSeeCode,
+                isAdmin: isAdmin,
+              ),
             ),
           );
         },
