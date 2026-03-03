@@ -190,7 +190,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       children: [
         _QuickActionCard(
           icon: Icons.event_busy_outlined,
-          label: 'Indisponibilidade',
+          label: 'Ausência',
           color: AppColors.primary,
           onTap: () {
             Navigator.of(context).push(
