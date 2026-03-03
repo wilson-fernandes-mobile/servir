@@ -16,6 +16,7 @@ class UserModel extends UserEntity {
     required super.createdAt,
     super.lastLoginAt,
     super.lastDevice,
+    super.photoUrl,
     super.unavailableDates,
   });
 
@@ -33,6 +34,7 @@ class UserModel extends UserEntity {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastLoginAt: (data['lastLoginAt'] as Timestamp?)?.toDate(),
       lastDevice: data['lastDevice'] as String?,
+      photoUrl: data['photoUrl'] as String?,
       unavailableDates: rawDates
           .whereType<Timestamp>()
           .map((ts) => ts.toDate())
@@ -52,6 +54,7 @@ class UserModel extends UserEntity {
     DateTime? createdAt,
     DateTime? lastLoginAt,
     String? lastDevice,
+    String? photoUrl,
     List<DateTime>? unavailableDates,
   }) {
     return UserModel(
@@ -65,6 +68,7 @@ class UserModel extends UserEntity {
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       lastDevice: lastDevice ?? this.lastDevice,
+      photoUrl: photoUrl ?? this.photoUrl,
       unavailableDates: unavailableDates ?? this.unavailableDates,
     );
   }
@@ -82,6 +86,7 @@ class UserModel extends UserEntity {
       'createdAt': Timestamp.fromDate(createdAt),
       if (lastLoginAt != null) 'lastLoginAt': Timestamp.fromDate(lastLoginAt!),
       if (lastDevice != null) 'lastDevice': lastDevice,
+      if (photoUrl != null) 'photoUrl': photoUrl,
       'unavailableDates': unavailableDates
           .map((d) => Timestamp.fromDate(DateTime(d.year, d.month, d.day)))
           .toList(),

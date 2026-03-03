@@ -1,7 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -26,6 +28,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   bool _savingPassword = false;
   bool _togglingDate = false;
   bool _profileInitialized = false;
+  bool _uploadingPhoto = false;
 
   @override
   void dispose() {
@@ -136,6 +139,58 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     await _toggleUnavailableDate(userId, picked, false);
   }
 
+  Future<void> _pickAndUploadPhoto(String userId) async {
+    try {
+      // Mostra opções: câmera ou galeria
+      final source = await showModalBottomSheet<ImageSource>(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Câmera'),
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galeria'),
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      if (source == null) return;
+
+      // Seleciona a imagem
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: source);
+
+      if (pickedFile == null) return;
+
+      setState(() => _uploadingPhoto = true);
+
+      // Faz upload da foto compactada
+      final uploadUseCase = ref.read(uploadProfilePhotoUseCaseProvider);
+      final result = await uploadUseCase(userId, pickedFile.path);
+
+      result.fold(
+        (failure) => _showSnack('Erro ao fazer upload da foto'),
+        (photoUrl) {
+          ref.invalidate(userByIdProvider(userId));
+          _showSnack('Foto atualizada com sucesso!');
+        },
+      );
+    } catch (e) {
+      _showSnack('Erro ao selecionar foto: $e');
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
+
   void _showSnack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
@@ -186,21 +241,72 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircleAvatar(
-                        radius: 45,
-                        backgroundColor: Colors.white.withOpacity(0.3),
-                        child: CircleAvatar(
-                          radius: 42,
-                          backgroundColor: Colors.white,
-                          child: Text(
-                            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                            style: const TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 45,
+                            backgroundColor: Colors.white.withOpacity(0.3),
+                            child: CircleAvatar(
+                              radius: 42,
+                              backgroundColor: Colors.white,
+                              child: user.photoUrl != null && user.photoUrl!.isNotEmpty
+                                  ? ClipOval(
+                                      child: CachedNetworkImage(
+                                        imageUrl: user.photoUrl!,
+                                        width: 84,
+                                        height: 84,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => const CircularProgressIndicator(),
+                                        errorWidget: (context, url, error) => Text(
+                                          user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                                          style: const TextStyle(
+                                            fontSize: 36,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : Text(
+                                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                                      style: const TextStyle(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
                             ),
                           ),
-                        ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _uploadingPhoto ? null : () => _pickAndUploadPhoto(user.id),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                ),
+                                child: _uploadingPhoto
+                                    ? const SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.camera_alt,
+                                        size: 14,
+                                        color: Colors.white,
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       Text(

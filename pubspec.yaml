@@ -51,6 +51,8 @@ dependencies:
   flutter_native_splash: ^2.4.6
   flutter_localizations:
     sdk: flutter
+  image_picker: ^1.2.1
+  flutter_image_compress: ^2.4.0
 
 dev_dependencies:
   flutter_test:

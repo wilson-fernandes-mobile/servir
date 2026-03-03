@@ -24,6 +24,7 @@ class UserEntity extends Equatable {
   final DateTime createdAt;
   final DateTime? lastLoginAt;
   final String? lastDevice;
+  final String? photoUrl;
 
   /// Datas em que o usuário marcou indisponibilidade (normalizadas à meia-noite).
   final List<DateTime> unavailableDates;
@@ -40,6 +41,7 @@ class UserEntity extends Equatable {
     required this.createdAt,
     this.lastLoginAt,
     this.lastDevice,
+    this.photoUrl,
     this.unavailableDates = const [],
   });
 
@@ -54,6 +56,7 @@ class UserEntity extends Equatable {
     DateTime? createdAt,
     DateTime? lastLoginAt,
     String? lastDevice,
+    String? photoUrl,
     List<DateTime>? unavailableDates,
   }) {
     return UserEntity(
@@ -67,6 +70,7 @@ class UserEntity extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
       lastDevice: lastDevice ?? this.lastDevice,
+      photoUrl: photoUrl ?? this.photoUrl,
       unavailableDates: unavailableDates ?? this.unavailableDates,
     );
   }
@@ -81,7 +85,7 @@ class UserEntity extends Equatable {
   @override
   List<Object?> get props => [
         id, name, email, phone, churchId,
-        role, isActive, createdAt, lastLoginAt, lastDevice, unavailableDates,
+        role, isActive, createdAt, lastLoginAt, lastDevice, photoUrl, unavailableDates,
       ];
 }
 

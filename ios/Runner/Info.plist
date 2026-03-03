@@ -55,5 +55,13 @@
 			<string>tel</string>
 			<string>sms</string>
 		</array>
+
+		<!-- Permissões para câmera e galeria de fotos -->
+		<key>NSCameraUsageDescription</key>
+		<string>Precisamos acessar sua câmera para você tirar uma foto de perfil.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Precisamos acessar sua galeria de fotos para você escolher uma foto de perfil.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>Precisamos salvar fotos na sua galeria.</string>
 	</dict>
 </plist>

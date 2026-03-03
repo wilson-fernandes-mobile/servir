@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/datasources/firebase_auth_data_source.dart';
+import '../../data/datasources/storage_data_source.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user_entity.dart';
@@ -11,6 +13,7 @@ import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/sign_in_use_case.dart';
 import '../../domain/usecases/sign_out_use_case.dart';
 import '../../domain/usecases/sign_up_use_case.dart';
+import '../../domain/usecases/upload_profile_photo_use_case.dart';
 import 'auth_notifier.dart';
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
@@ -21,6 +24,10 @@ final firebaseAuthProvider = Provider<FirebaseAuth>(
 
 final firestoreProvider = Provider<FirebaseFirestore>(
   (_) => FirebaseFirestore.instance,
+);
+
+final firebaseStorageProvider = Provider<FirebaseStorage>(
+  (_) => FirebaseStorage.instance,
 );
 
 // ── Data layer ────────────────────────────────────────────────────────────────
@@ -38,6 +45,10 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(ref.read(authRemoteDataSourceProvider));
 });
 
+final storageDataSourceProvider = Provider<StorageDataSource>((ref) {
+  return FirebaseStorageDataSource(ref.read(firebaseStorageProvider));
+});
+
 // ── Domain / Use-cases ────────────────────────────────────────────────────────
 
 final signInUseCaseProvider = Provider<SignInUseCase>(
@@ -50,6 +61,13 @@ final signUpUseCaseProvider = Provider<SignUpUseCase>(
 
 final signOutUseCaseProvider = Provider<SignOutUseCase>(
   (ref) => SignOutUseCase(ref.read(authRepositoryProvider)),
+);
+
+final uploadProfilePhotoUseCaseProvider = Provider<UploadProfilePhotoUseCase>(
+  (ref) => UploadProfilePhotoUseCase(
+    ref.read(storageDataSourceProvider),
+    ref.read(firestoreProvider),
+  ),
 );
 
 // ── Presentation ──────────────────────────────────────────────────────────────
