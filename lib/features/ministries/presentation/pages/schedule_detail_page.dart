@@ -37,6 +37,12 @@ class _ScheduleDetailPageState extends ConsumerState<ScheduleDetailPage> {
   void initState() {
     super.initState();
     _assignments = List.from(widget.schedule.assignments);
+    // Invalida os providers de usuários para garantir dados atualizados
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final assignment in _assignments) {
+        ref.invalidate(userByIdProvider(assignment.userId));
+      }
+    });
   }
 
   bool get _isToday {
@@ -121,41 +127,50 @@ class _ScheduleDetailPageState extends ConsumerState<ScheduleDetailPage> {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _InfoCard(
-            schedule: widget.schedule,
-            dateLabel: dateLabel,
-            isToday: _isToday,
-          ),
-          const SizedBox(height: 20),
-          Row(children: [
-            const Text('Membros escalados',
-                style:
-                    TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-            const Spacer(),
-            if (widget.canManage)
-              TextButton.icon(
-                onPressed: _showAddMemberDialog,
-                icon: const Icon(Icons.person_add_outlined, size: 16),
-                label: const Text('Adicionar'),
-              ),
-          ]),
-          const SizedBox(height: 8),
-          if (_assignments.isEmpty)
-            const Text('Nenhum membro escalado.',
-                style: TextStyle(color: AppColors.textSecondary)),
-          ..._assignments.map((a) => _AssignmentTile(
-                key: ValueKey(a.userId),
-                userId: a.userId,
-                roles: a.roles,
-                canManage: widget.canManage,
-                onRemove: () =>
-                    setState(() => _assignments.removeWhere(
-                        (x) => x.userId == a.userId)),
-              )),
-        ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          // Invalida os providers de usuários para recarregar as fotos
+          for (final assignment in _assignments) {
+            ref.invalidate(userByIdProvider(assignment.userId));
+          }
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          children: [
+            _InfoCard(
+              schedule: widget.schedule,
+              dateLabel: dateLabel,
+              isToday: _isToday,
+            ),
+            const SizedBox(height: 20),
+            Row(children: [
+              const Text('Membros escalados',
+                  style:
+                      TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              const Spacer(),
+              if (widget.canManage)
+                TextButton.icon(
+                  onPressed: _showAddMemberDialog,
+                  icon: const Icon(Icons.person_add_outlined, size: 16),
+                  label: const Text('Adicionar'),
+                ),
+            ]),
+            const SizedBox(height: 8),
+            if (_assignments.isEmpty)
+              const Text('Nenhum membro escalado.',
+                  style: TextStyle(color: AppColors.textSecondary)),
+            ..._assignments.map((a) => _AssignmentTile(
+                  key: ValueKey(a.userId),
+                  userId: a.userId,
+                  roles: a.roles,
+                  canManage: widget.canManage,
+                  onRemove: () =>
+                      setState(() => _assignments.removeWhere(
+                          (x) => x.userId == a.userId)),
+                )),
+          ],
+        ),
       ),
     );
   }

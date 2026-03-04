@@ -103,7 +103,23 @@ final myUpcomingSchedulesProvider =
         return true;
       })
       .toList()
-    ..sort((a, b) => a.eventDate.compareTo(b.eventDate));
+    ..sort((a, b) {
+      // Primeiro ordena por data
+      final dateCompare = a.eventDate.compareTo(b.eventDate);
+      if (dateCompare != 0) return dateCompare;
+
+      // Se a data for igual, ordena por horário de início
+      if (a.shiftStartTime != null && b.shiftStartTime != null) {
+        return a.shiftStartTime!.compareTo(b.shiftStartTime!);
+      }
+
+      // Se um tiver horário e outro não, prioriza o que tem horário
+      if (a.shiftStartTime != null) return -1;
+      if (b.shiftStartTime != null) return 1;
+
+      // Se nenhum tiver horário, mantém ordem original
+      return 0;
+    });
 
   return mine;
 });
