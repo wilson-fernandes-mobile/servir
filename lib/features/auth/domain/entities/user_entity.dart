@@ -82,6 +82,14 @@ class UserEntity extends Equatable {
     );
   }
 
+  bool isAdm() {
+    return role == UserRole.admin;
+  }
+
+  bool isLead() {
+    return role == UserRole.leader;
+  }
+
   @override
   List<Object?> get props => [
         id, name, email, phone, churchId,

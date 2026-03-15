@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/widgets/custom_bottom_sheet.dart';
 import '../../../../core/widgets/user_avatar.dart';
 import '../../../auth/domain/entities/user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -13,6 +14,8 @@ import '../../domain/usecases/create_event_use_case.dart';
 import '../../domain/usecases/delete_event_use_case.dart';
 import '../../../ministries/domain/entities/ministry_entity.dart';
 import '../../../ministries/domain/entities/schedule_entity.dart';
+import '../../../ministries/domain/usecases/delete_schedule_use_case.dart';
+import '../../../ministries/presentation/pages/schedule_detail_page.dart';
 import '../../../ministries/presentation/providers/ministry_provider.dart';
 import '../../../ministries/presentation/providers/schedule_provider.dart';
 
@@ -22,8 +25,7 @@ class EventsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateChangesProvider).asData?.value;
-    final canManage =
-        user?.role == UserRole.admin || user?.role == UserRole.leader;
+    final canManage = user != null ? (user.isAdm() || user.isLead()) : false;
     final eventsAsync = ref.watch(churchEventsProvider);
 
     return Scaffold(
@@ -110,13 +112,7 @@ class _EventCard extends ConsumerWidget {
     return Card(
       clipBehavior: Clip.hardEdge,
       child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => EventDetailPage(event: event),
-            ),
-          );
-        },
+        onTap: () => _showEventOptions(context, ref),
         child: Stack(
           children: [
             Positioned(
@@ -163,12 +159,6 @@ class _EventCard extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  if (canManage)
-                    IconButton(
-                      icon: Icon(Icons.delete_outline,
-                          color: Colors.red.shade400, size: 20),
-                      onPressed: () => _confirmDelete(context, ref),
-                    ),
                 ],
               ),
             ),
@@ -176,6 +166,32 @@ class _EventCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  void _showEventOptions(BuildContext context, WidgetRef ref) {
+    final actions = [
+      BottomSheetAction(
+        icon: Icons.visibility_outlined,
+        label: 'Visualizar Detalhes',
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => EventDetailPage(event: event),
+            ),
+          );
+        },
+      ),
+      BottomSheetAction(
+        icon: Icons.delete_outline,
+        label: 'Excluir Evento',
+        iconColor: AppColors.error,
+        textColor: AppColors.error,
+        visible: canManage,
+        onTap: () => _confirmDelete(context, ref),
+      ),
+    ];
+
+    CustomBottomSheet.show(context: context, actions: actions);
   }
 
   void _confirmDelete(BuildContext context, WidgetRef ref) {
@@ -340,7 +356,10 @@ class _MinistryScheduleSection extends ConsumerWidget {
             ],
           ),
         ),
-        ...sortedSchedules.map((schedule) => _ScheduleItem(schedule: schedule)),
+        ...sortedSchedules.map((schedule) => _ScheduleItem(
+          schedule: schedule,
+          ministry: ministry,
+        )),
         const SizedBox(height: 8),
       ],
     );
@@ -351,11 +370,20 @@ class _MinistryScheduleSection extends ConsumerWidget {
 
 class _ScheduleItem extends ConsumerWidget {
   final ScheduleEntity schedule;
+  final MinistryEntity ministry;
 
-  const _ScheduleItem({required this.schedule});
+  const _ScheduleItem({
+    required this.schedule,
+    required this.ministry,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authStateChangesProvider).asData?.value;
+    final canManage = user != null &&
+        (user.isAdm() ||
+            ministry.leaderIds.contains(user.id));
+
     return FutureBuilder<Map<String, UserEntity>>(
       future: _loadUsers(ref, schedule.assignments.map((a) => a.userId).toList()),
       builder: (context, snapshot) {
@@ -369,122 +397,202 @@ class _ScheduleItem extends ConsumerWidget {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: AppColors.divider),
           ),
-          child: Stack(
-            children: [
-              // Padrão de fundo
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                child: Image.asset(
-                  'assets/icon/ic_pattern_transparent_background.png',
-                  fit: BoxFit.fitHeight,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => _showScheduleOptions(context, ref, canManage, users.values.toList()),
+            child: Stack(
+              children: [
+                // Padrão de fundo
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Image.asset(
+                    'assets/icon/ic_pattern_transparent_background.png',
+                    fit: BoxFit.fitHeight,
+                  ),
                 ),
-              ),
 
-              // Conteúdo
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Horário/Turno
-                    if (schedule.shiftName != null || schedule.displayTime != null) ...[
-                      Row(
-                        children: [
-                          Icon(Icons.access_time, size: 14, color: AppColors.textSecondary),
-                          const SizedBox(width: 4),
-                          Text(
-                            schedule.displayTime ?? schedule.shiftName ?? '',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
+                // Conteúdo
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Horário/Turno
+                      if (schedule.shiftName != null || schedule.displayTime != null) ...[
+                        Row(
+                          children: [
+                            Icon(Icons.access_time, size: 14, color: AppColors.textSecondary),
+                            const SizedBox(width: 4),
+                            Text(
+                              schedule.displayTime ?? schedule.shiftName ?? '',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                      ],
 
-                    // Avatares sobrepostos + contador
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Stack de avatares
-                        SizedBox(
-                          width: schedule.assignments.isEmpty
-                              ? 0
-                              : (schedule.assignments.length * 24.0) + 8,
-                          height: 36,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: schedule.assignments.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final assignment = entry.value;
-                              final user = users[assignment.userId];
-                              final userName = user?.name ?? '?';
-                              final roles = assignment.roles.join(', ');
-                              final tooltipText = roles.isNotEmpty
-                                  ? '$userName - $roles'
-                                  : userName;
+                      // Avatares sobrepostos + contador
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Stack de avatares
+                          SizedBox(
+                            width: schedule.assignments.isEmpty
+                                ? 0
+                                : (schedule.assignments.length * 24.0) + 8,
+                            height: 28,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: schedule.assignments.asMap().entries.map((entry) {
+                                final index = entry.key;
+                                final assignment = entry.value;
+                                final user = users[assignment.userId];
+                                final userName = user?.name ?? '?';
+                                final roles = assignment.roles.join(', ');
+                                final tooltipText = roles.isNotEmpty
+                                    ? '$userName - $roles'
+                                    : userName;
 
-                              return Positioned(
-                                left: index * 24.0, // Sobreposição de 24px
-                                child: Tooltip(
-                                  message: tooltipText,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2,
+                                return Positioned(
+                                  left: index * 18.0, // Sobreposição de 24px
+                                  child: Tooltip(
+                                    message: tooltipText,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: UserAvatar(
+                                        photoUrl: user?.photoUrl,
+                                        userName: userName,
+                                        radius: 12,
                                       ),
                                     ),
-                                    child: UserAvatar(
-                                      photoUrl: user?.photoUrl,
-                                      userName: userName,
-                                      radius: 16,
-                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+
+                          // Contador abaixo dos avatares
+                          if (schedule.assignments.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.people,
+                                  size: 14,
+                                  color: AppColors.textSecondary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Total Escalado ${schedule.assignments.length}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-
-                        // Contador abaixo dos avatares
-                        if (schedule.assignments.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.people,
-                                size: 14,
-                                color: AppColors.textSecondary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Total Escalado ${schedule.assignments.length}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                          ],
                         ],
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
     );
+  }
+
+  void _showScheduleOptions(BuildContext context, WidgetRef ref, bool canManage, List<UserEntity> allMembers) {
+    final actions = [
+      BottomSheetAction(
+        icon: Icons.visibility_outlined,
+        label: 'Visualizar Detalhes',
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ScheduleDetailPage(
+                schedule: schedule,
+                ministry: ministry,
+                allMembers: allMembers,
+                canManage: canManage,
+              ),
+            ),
+          );
+        },
+      ),
+      BottomSheetAction(
+        icon: Icons.delete_outline,
+        label: 'Excluir Escala',
+        iconColor: AppColors.error,
+        textColor: AppColors.error,
+        visible: canManage,
+        onTap: () => _confirmDelete(context, ref),
+      ),
+    ];
+
+    CustomBottomSheet.show(context: context, actions: actions);
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir Escala'),
+        content: const Text('Tem certeza que deseja excluir esta escala?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final result = await ref.read(deleteScheduleUseCaseProvider).call(
+        DeleteScheduleParams(
+          ministryId: ministry.id,
+          scheduleId: schedule.id,
+        ),
+      );
+
+      if (context.mounted) {
+        result.fold(
+          (failure) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(failure.message)),
+          ),
+          (_) {
+            ref.invalidate(upcomingSchedulesProvider(ministry.id));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Escala excluída com sucesso!')),
+            );
+          },
+        );
+      }
+    }
   }
 
   Future<Map<String, UserEntity>> _loadUsers(WidgetRef ref, List<String> userIds) async {

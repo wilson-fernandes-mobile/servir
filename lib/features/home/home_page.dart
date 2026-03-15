@@ -221,7 +221,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         _QuickActionCard(
           icon: Icons.event,
-          label: 'Eventos',
+          label: 'Escalas',
           color: AppColors.secondary,
           count: eventsCount,
           onTap: () => setState(() => _selectedIndex = 1),
